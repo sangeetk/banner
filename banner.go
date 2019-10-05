@@ -2,27 +2,30 @@ package banner
 
 import (
 	"fmt"
-	"image"
 	"time"
 
 	"github.com/sangeetk/banner/datastore"
 )
 
 type Bucket struct {
+	id string
 	ds datastore.DataStore
 }
 
 // Banner image
 type Banner struct {
-	ID          string
-	Image       image.Image
-	ActiveAt    int64
-	ExpireAt    int64
-	Description string
+	ID       string
+	ActiveAt int64
+	ExpireAt int64
+	Image    string
 }
 
-func Init(ds datastore.DataStore) *Bucket {
-	return &Bucket{ds: ds}
+func NewBucket(id string, ds datastore.DataStore) *Bucket {
+	return &Bucket{id: id, ds: ds}
+}
+
+func (b *Bucket) Put(bnr *Banner) error {
+	return b.ds.Put(bnr.ID, bnr)
 }
 
 // Get an active banner, if there are more than one
