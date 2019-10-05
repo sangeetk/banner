@@ -4,7 +4,13 @@ import (
 	"fmt"
 	"image"
 	"time"
+
+	"github.com/sangeetk/banner/datastore"
 )
+
+type Bucket struct {
+	ds datastore.DataStore
+}
 
 // Banner image
 type Banner struct {
@@ -15,29 +21,33 @@ type Banner struct {
 	Description string
 }
 
+func Init(ds datastore.DataStore) *Bucket {
+	return &Bucket{ds: ds}
+}
+
 // Get an active banner, if there are more than one
 // then returns the banner with nearest expiry time
-func Get(tz time.Time) (*Banner, error) {
+func (b *Bucket) Get(tz time.Time) (*Banner, error) {
 	return nil, nil
 }
 
 // Preview banner by id
-func Preview(id int) *Banner {
+func (b *Bucket) Preview(id int) *Banner {
 	return nil
 }
 
 // Preview all banners scheduled in future
-func PreviewAll() []*Banner {
+func (b *Bucket) PreviewAll() []*Banner {
 	return []*Banner{}
 }
 
 // Create a Banner from the given file path
-func NewFile(file string) (*Banner, error) {
+func (b *Bucket) NewFile(file string) (*Banner, error) {
 	return nil, nil
 }
 
 // Create a Banner from the given URL
-func NewURL(url string) (*Banner, error) {
+func (b *Bucket) NewURL(url string) (*Banner, error) {
 	return nil, nil
 }
 
