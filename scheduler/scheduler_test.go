@@ -1,4 +1,4 @@
-package banner
+package scheduler
 
 import (
 	"fmt"
@@ -14,14 +14,14 @@ func TestScheduler(t *testing.T) {
 	var s = New()
 	s.Debug()
 
-	if err := s.Schedule(banner.Banner{ID: "A", ActiveAt: 20, ExpireAt: 40}); err != nil {
+	AddBanner(s, banner.Banner{ID: "A", ActiveAt: 20, ExpireAt: 40})
+
+	AddBanner(s, banner.Banner{ID: "B", ActiveAt: 20, ExpireAt: 35})
+}
+
+func AddBanner(s *Scheduler, b banner.Banner) {
+	if err := s.Schedule(b); err != nil {
 		fmt.Println(err)
 	}
 	s.Debug()
-
-	if err := s.Schedule(banner.Banner{ID: "B", ActiveAt: 10, ExpireAt: 30}); err != nil {
-		fmt.Println(err)
-	}
-	s.Debug()
-
 }

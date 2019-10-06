@@ -1,4 +1,4 @@
-package banner
+package scheduler
 
 import (
 	"errors"
@@ -161,13 +161,19 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// New ->  AAAAAAAAAAAA
 			if p.T2 < b.ExpireAt {
 				fmt.Println("Case 6.2:")
-				q := &Timeslot{false, p.T2, b.ExpireAt, []banner.Banner{b}, nil}
 				p.Banners = append(p.Banners, b)
 				sort.Sort(banner.ByExpiry(p.Banners))
 
-				q.Lock = true
+				if p.Next == nil {
+					q := &Timeslot{false, p.T2, b.ExpireAt, []banner.Banner{b}, nil}
+					p.Next = q
+					return nil
+				}
+
+				p.Lock = true
+				b.ActiveAt = p.T2
 				err := s.Schedule(b)
-				q.Lock = false
+				p.Lock = false
 				return err
 			}
 
