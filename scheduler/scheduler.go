@@ -56,7 +56,6 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Result:
 		// Head ->    AAAAAAAAAA -> nil
 		s.Head = &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, nil}
-		fmt.Println("Case 1:")
 		return nil
 	}
 
@@ -75,13 +74,13 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Result:
 		// Head -> AAAAAAAAAA -> ########## -> ##### -> nil
 		if b.ExpireAt <= p.T1 {
+			fmt.Println("Case 2: p,b = ", p, b)
 			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, p}
 			if s.Head == p {
 				s.Head = q
 			} else {
 				prev.Next = q
 			}
-			fmt.Println("Case 2:")
 			return nil
 		}
 
@@ -90,9 +89,9 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Head -> ########## -> ##### -> nil
 		// New ->                           AAAAAAAAAA
 		if p.T2 <= b.ActiveAt && p.Next == nil {
+			fmt.Println("Case 3: p,b = ", p, b)
 			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, nil}
 			p.Next = q
-			fmt.Println("Case 3:")
 			return nil
 		}
 
@@ -101,6 +100,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Head ->    ########## -> ##### -> nil
 		// New ->  AAAAAAAAA
 		if b.ActiveAt < p.T1 {
+			fmt.Println("Case 4: p,b = ", p, b)
 			b1 := banner.Banner{b.ID, b.ActiveAt, b.ExpireAt, b.Image}
 			b2 := banner.Banner{b.ID, p.T1, b.ExpireAt, b.Image}
 
@@ -111,7 +111,6 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			} else {
 				s.Head = q
 			}
-			fmt.Println("Case 4:")
 
 			q.Lock = true
 			err := s.Schedule(b2)
@@ -123,7 +122,8 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Time : +----+----+----+----+----+----+----+----+
 		// Head -> ########## -> ##### -> nil
 		// New ->     AAAAAAAAA
-		if p.T1 < b.ActiveAt {
+		if p.T1 < b.ActiveAt && p.T2 > b.ActiveAt {
+			fmt.Println("Case 5: p,b = ", p, b)
 			q := &Timeslot{false, p.T1, b.ActiveAt, p.Banners, p}
 			p.T1 = b.ActiveAt
 
@@ -132,7 +132,6 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			} else {
 				s.Head = q
 			}
-			fmt.Println("Case 5:")
 			q.Lock = true
 			err := s.Schedule(b)
 			q.Lock = false
@@ -146,7 +145,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAA
 			if b.ExpireAt < p.T2 {
-				fmt.Println("Case 6.1:")
+				fmt.Println("Case 6.1: p,b = ", p, b)
 				q := &Timeslot{false, b.ExpireAt, p.T2, p.Banners, p.Next}
 				p.T2 = b.ExpireAt
 				p.Banners = append(p.Banners, b)
@@ -160,7 +159,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAAAAAAA
 			if p.T2 < b.ExpireAt {
-				fmt.Println("Case 6.2:")
+				fmt.Println("Case 6.2: p,b = ", p, b)
 				p.Banners = append(p.Banners, b)
 				sort.Sort(banner.ByExpiry(p.Banners))
 
@@ -182,7 +181,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAAAAA
 			if p.T2 == b.ExpireAt {
-				fmt.Println("Case 6.3:")
+				fmt.Println("Case 6.3: p,b = ", p, b)
 				p.Banners = append(p.Banners, b)
 				sort.Sort(banner.ByExpiry(p.Banners))
 				return nil
