@@ -3,6 +3,7 @@ package banner
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/sangeetk/banner"
@@ -39,8 +40,6 @@ func New() *Scheduler {
 
 // Add an item to the scheduler
 func (s *Scheduler) Schedule(b banner.Banner) error {
-
-	fmt.Println("Banner:", b)
 
 	if b.ActiveAt >= b.ExpireAt {
 		return errors.New("Invalid schedule")
@@ -142,33 +141,44 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 
 		// Case 6: Start at same time
 		if p.T1 == b.ActiveAt {
-			fmt.Println("Case 6")
-			// Case 6.1: Shorter banner
+			// Case 6.1: Shorter new banner
 			// Time : +----+----+----+----+----+----+----+----+
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAA
 			if b.ExpireAt < p.T2 {
+				fmt.Println("Case 6.1:")
 				q := &Timeslot{false, b.ExpireAt, p.T2, p.Banners, p.Next}
 				p.T2 = b.ExpireAt
 				p.Banners = append(p.Banners, b)
+				sort.Sort(banner.ByExpiry(p.Banners))
 				p.Next = q
 				return nil
 			}
 
-			// Case 6.2: Longer banner
+			// Case 6.2: Longer new banner
 			// Time : +----+----+----+----+----+----+----+----+
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAAAAAAA
-			if p.T2 < b.ExpreAt {
+			if p.T2 < b.ExpireAt {
+				fmt.Println("Case 6.2:")
+				q := &Timeslot{false, p.T2, b.ExpireAt, []banner.Banner{b}, nil}
+				p.Banners = append(p.Banners, b)
+				sort.Sort(banner.ByExpiry(p.Banners))
 
+				q.Lock = true
+				err := s.Schedule(b)
+				q.Lock = false
+				return err
 			}
 
-			// case 6.3: Equal banner
+			// case 6.3: Equal new banner
 			// Time : +----+----+----+----+----+----+----+----+
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAAAAA
 			if p.T2 == b.ExpireAt {
+				fmt.Println("Case 6.3:")
 				p.Banners = append(p.Banners, b)
+				sort.Sort(banner.ByExpiry(p.Banners))
 				return nil
 			}
 
