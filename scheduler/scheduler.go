@@ -4,15 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/sangeetk/banner"
 )
 
 // Storage for timeslots ??
 
 // Timeslot is valid for time t when  T1 <= t < T2
 type Timeslot struct {
+	Lock    bool
 	T1      int64
 	T2      int64
-	Banners []*Banner
+	Banners []banner.Banner
 	Next    *Timeslot
 }
 
@@ -35,7 +38,10 @@ func New() *Scheduler {
 }
 
 // Add an item to the scheduler
-func (s *Scheduler) Schedule(b *Banner) error {
+func (s *Scheduler) Schedule(b banner.Banner) error {
+
+	fmt.Println("Banner:", b)
+
 	if b.ActiveAt >= b.ExpireAt {
 		return errors.New("Invalid schedule")
 	}
@@ -50,7 +56,7 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// New ->     AAAAAAAAAA
 		// Result:
 		// Head ->    AAAAAAAAAA -> nil
-		s.Head = &Timeslot{b.ActiveAt, b.ExpireAt, []*Banner{b}, nil}
+		s.Head = &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, nil}
 		fmt.Println("Case 1:")
 		return nil
 	}
@@ -59,6 +65,10 @@ func (s *Scheduler) Schedule(b *Banner) error {
 	var prev *Timeslot = nil
 	for p := s.Head; p != nil; prev, p = p, p.Next {
 
+		if p.Lock {
+			continue
+		}
+
 		// Case 2: Schedule in the empty timeslot
 		// Time : +----+----+----+----+----+----+----+----+
 		// Head ->               ########## -> ##### -> nil
@@ -66,7 +76,7 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// Result:
 		// Head -> AAAAAAAAAA -> ########## -> ##### -> nil
 		if b.ExpireAt <= p.T1 {
-			q := &Timeslot{b.ActiveAt, b.ExpireAt, []*Banner{b}, p}
+			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, p}
 			if s.Head == p {
 				s.Head = q
 			} else {
@@ -80,99 +90,107 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// Time : +----+----+----+----+----+----+----+----+
 		// Head -> ########## -> ##### -> nil
 		// New ->                           AAAAAAAAAA
-		// Result:
-		// Head -> ########## -> ##### ->   AAAAAAAAAA -> nil
 		if p.T2 <= b.ActiveAt && p.Next == nil {
-			q := &Timeslot{b.ActiveAt, b.ExpireAt, []*Banner{b}, nil}
+			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, nil}
 			p.Next = q
 			fmt.Println("Case 3:")
 			return nil
 		}
 
-		// Case 4: Left Overlap 1
+		// Case 4: Overlap 1 - Split new node
 		// Time : +----+----+----+----+----+----+----+----+
 		// Head ->    ########## -> ##### -> nil
 		// New ->  AAAAAAAAA
-		// Result:
-		// Head -> AAAAAAAAA#### -> ##### -> nil
-		// Head -> AAAAAAAAA -> #### -> ##### -> nil
-		if b.ActiveAt <= p.T1 && b.ExpireAt > p.T1 {
-			// Split the current timeslot into two slots
-			q := &Timeslot{b.ActiveAt, b.ExpireAt, []*Banner{b}, p}
-			// Shrink the timeslot
-			p.T1 = q.T2
-			if prev == nil {
-				s.Head = q
-			} else {
+		if b.ActiveAt < p.T1 {
+			b1 := banner.Banner{b.ID, b.ActiveAt, b.ExpireAt, b.Image}
+			b2 := banner.Banner{b.ID, p.T1, b.ExpireAt, b.Image}
+
+			q := &Timeslot{false, b.ActiveAt, p.T1, []banner.Banner{b1}, p}
+
+			if prev != nil {
 				prev.Next = q
+			} else {
+				s.Head = q
 			}
 			fmt.Println("Case 4:")
-			return nil
+
+			q.Lock = true
+			err := s.Schedule(b2)
+			q.Lock = false
+			return err
 		}
 
-		// Case 5: Right Overlap
+		// Case 5: Overlap 2 - Split current node
 		// Time : +----+----+----+----+----+----+----+----+
 		// Head -> ########## -> ##### -> nil
 		// New ->     AAAAAAAAA
-		// Result:
-		// Head -> ##########AA -> ##### -> nil
-		if b.ActiveAt >= p.T1 && b.ExpireAt > p.T1 {
-			// Split the current timeslot into two slots
-			q := &Timeslot{b.ActiveAt, b.ExpireAt, []*Banner{b}, p}
-			// Shrink the timeslot
-			p.T1 = q.T2
-			if prev == nil {
-				s.Head = q
-			} else {
+		if p.T1 < b.ActiveAt {
+			q := &Timeslot{false, p.T1, b.ActiveAt, p.Banners, p}
+			p.T1 = b.ActiveAt
+
+			if prev != nil {
 				prev.Next = q
+			} else {
+				s.Head = q
 			}
-			fmt.Println("Case 4:")
-			return nil
+			fmt.Println("Case 5:")
+			q.Lock = true
+			err := s.Schedule(b)
+			q.Lock = false
+			return err
 		}
 
-		// Case 7:
-		// Time : +----+----+----+----+----+----+----+----+
-		// Head -> ########## -> ##### -> nil
-		// New ->                           ##########
-		// Result:
+		// Case 6: Start at same time
+		if p.T1 == b.ActiveAt {
+			fmt.Println("Case 6")
+			// Case 6.1: Shorter banner
+			// Time : +----+----+----+----+----+----+----+----+
+			// Head -> ########## -> ##### -> nil
+			// New ->  AAAAAAA
+			if b.ExpireAt < p.T2 {
+				q := &Timeslot{false, b.ExpireAt, p.T2, p.Banners, p.Next}
+				p.T2 = b.ExpireAt
+				p.Banners = append(p.Banners, b)
+				p.Next = q
+				return nil
+			}
 
-		// Time : +----+----+----+----+----+----+----+----+
-		// Head -> ########## -> ##### -> nil
-		// New ->                           ##########
-		// Result:
+			// Case 6.2: Longer banner
+			// Time : +----+----+----+----+----+----+----+----+
+			// Head -> ########## -> ##### -> nil
+			// New ->  AAAAAAAAAAAA
+			if p.T2 < b.ExpreAt {
 
-		// Time : +----+----+----+----+----+----+----+----+
-		// Head -> ########## -> ##### -> nil
-		// New ->                           ##########
-		// Result:
+			}
 
-		// Time : +----+----+----+----+----+----+----+----+
-		// Head -> ########## -> ##### -> nil
-		// New ->                           ##########
-		// Result:
+			// case 6.3: Equal banner
+			// Time : +----+----+----+----+----+----+----+----+
+			// Head -> ########## -> ##### -> nil
+			// New ->  AAAAAAAAAA
+			if p.T2 == b.ExpireAt {
+				p.Banners = append(p.Banners, b)
+				return nil
+			}
 
-		// Time : +----+----+----+----+----+----+----+----+
-		// Head -> ########## -> ##### -> nil
-		// New ->                           ##########
-		// Result:
+		}
 
 	}
 	return nil
 }
 
 // Get an active item
-func (s *Scheduler) Get() (*Banner, error) {
-	return nil, nil
+func (s *Scheduler) Get() (banner.Banner, error) {
+	return banner.Banner{}, nil
 }
 
 // Get an active item
-func (s *Scheduler) GetByTime(t int64) (*Banner, error) {
+func (s *Scheduler) GetByTime(t int64) (banner.Banner, error) {
 	for p := s.Head; p != nil; p = p.Next {
 		if t >= p.T1 && t < p.T2 {
 			return p.Banners[0], nil
 		}
 	}
-	return nil, errors.New("Not Found")
+	return banner.Banner{}, errors.New("Not Found")
 }
 
 // Cleanup unused memory
@@ -188,6 +206,7 @@ func (s *Scheduler) Debug() {
 		for i := t.T1; i < t.T2; i++ {
 			fmt.Print(t.Banners[0].ID)
 		}
+		fmt.Printf("(%v,%v)", t.T1, t.T2)
 		fmt.Print(" -> ")
 	}
 	fmt.Println("nil")
