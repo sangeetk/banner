@@ -11,7 +11,7 @@ import (
 
 func main() {
 
-	b := banner.NewBucket("example", datastore.InMemory())
+	b := banner.NewBucket("example", datastore.NewMemoryStorage())
 
 	now := time.Now()
 

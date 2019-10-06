@@ -9,7 +9,7 @@ type Mysql struct {
 	// Define mysql realted fields
 }
 
-func MySQL(host, user, pass string) *Mysql {
+func NewMysqlStorage(host, user, pass string) *Mysql {
 	// connect to MySQL server and return handler
 	return nil
 }

@@ -8,7 +8,7 @@ type Memory struct {
 	storage map[string]interface{}
 }
 
-func InMemory() *Memory {
+func NewMemoryStorage() *Memory {
 	return &Memory{storage: make(map[string]interface{})}
 }
 

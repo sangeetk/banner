@@ -34,3 +34,7 @@ func (b Banner) IsActive() bool {
 func (b Banner) String() string {
 	return fmt.Sprintf("%v[%v,%v)", b.ID, b.ActiveAt, b.ExpireAt)
 }
+
+func (b Banner) Debug(offset int64) string {
+	return fmt.Sprintf("%v[%v,%v)", b.ID, b.ActiveAt-offset, b.ExpireAt-offset)
+}

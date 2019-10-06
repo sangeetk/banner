@@ -2,9 +2,8 @@ package scheduler
 
 import (
 	"errors"
-	"fmt"
 	"sort"
-	"sync"
+	"time"
 
 	"github.com/sangeetk/banner"
 )
@@ -20,17 +19,7 @@ type Timeslot struct {
 	Next    *Timeslot
 }
 
-func (t *Timeslot) String() string {
-	str := fmt.Sprintf("{%v - %v, [ ", t.T1, t.T2)
-	for _, b := range t.Banners {
-		str += b.ID + " "
-	}
-	str += "]}"
-	return str
-}
-
 type Scheduler struct {
-	Lock sync.Mutex
 	Head *Timeslot
 }
 
@@ -44,9 +33,10 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 	if b.ActiveAt >= b.ExpireAt {
 		return errors.New("Invalid schedule")
 	}
-	//	if b.ExpireAt <= time.Now().Unix() {
-	//		return errors.New("Expired schedule")
-	//	}
+
+	if b.ExpireAt <= time.Now().Unix() {
+		return errors.New("Expired schedule")
+	}
 
 	if s.Head == nil {
 		// Case 1: Empty schedule
@@ -74,7 +64,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Result:
 		// Head -> AAAAAAAAAA -> ########## -> ##### -> nil
 		if b.ExpireAt <= p.T1 {
-			fmt.Println("Case 2: p,b = ", p, b)
+			// fmt.Println("Case 2: p,b = ", p, b)
 			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, p}
 			if s.Head == p {
 				s.Head = q
@@ -89,7 +79,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Head -> ########## -> ##### -> nil
 		// New ->                           AAAAAAAAAA
 		if p.T2 <= b.ActiveAt && p.Next == nil {
-			fmt.Println("Case 3: p,b = ", p, b)
+			// fmt.Println("Case 3: p,b = ", p, b)
 			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []banner.Banner{b}, nil}
 			p.Next = q
 			return nil
@@ -100,7 +90,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Head ->    ########## -> ##### -> nil
 		// New ->  AAAAAAAAA
 		if b.ActiveAt < p.T1 {
-			fmt.Println("Case 4: p,b = ", p, b)
+			// fmt.Println("Case 4: p,b = ", p, b)
 			b1 := banner.Banner{b.ID, b.ActiveAt, b.ExpireAt, b.Image}
 			b2 := banner.Banner{b.ID, p.T1, b.ExpireAt, b.Image}
 
@@ -123,8 +113,12 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 		// Head -> ########## -> ##### -> nil
 		// New ->     AAAAAAAAA
 		if p.T1 < b.ActiveAt && p.T2 > b.ActiveAt {
-			fmt.Println("Case 5: p,b = ", p, b)
-			q := &Timeslot{false, p.T1, b.ActiveAt, p.Banners, p}
+			// fmt.Println("Case 5: p,b = ", p, b)
+
+			banners := make([]banner.Banner, len(p.Banners))
+			copy(banners, p.Banners)
+
+			q := &Timeslot{false, p.T1, b.ActiveAt, banners, p}
 			p.T1 = b.ActiveAt
 
 			if prev != nil {
@@ -145,8 +139,11 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAA
 			if b.ExpireAt < p.T2 {
-				fmt.Println("Case 6.1: p,b = ", p, b)
-				q := &Timeslot{false, b.ExpireAt, p.T2, p.Banners, p.Next}
+				// fmt.Println("Case 6.1: p,b = ", p, b)
+				banners := make([]banner.Banner, len(p.Banners))
+				copy(banners, p.Banners)
+
+				q := &Timeslot{false, b.ExpireAt, p.T2, banners, p.Next}
 				p.T2 = b.ExpireAt
 				p.Banners = append(p.Banners, b)
 				sort.Sort(banner.ByExpiry(p.Banners))
@@ -159,7 +156,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAAAAAAA
 			if p.T2 < b.ExpireAt {
-				fmt.Println("Case 6.2: p,b = ", p, b)
+				// fmt.Println("Case 6.2: p,b = ", p, b)
 				p.Banners = append(p.Banners, b)
 				sort.Sort(banner.ByExpiry(p.Banners))
 
@@ -181,7 +178,7 @@ func (s *Scheduler) Schedule(b banner.Banner) error {
 			// Head -> ########## -> ##### -> nil
 			// New ->  AAAAAAAAAA
 			if p.T2 == b.ExpireAt {
-				fmt.Println("Case 6.3: p,b = ", p, b)
+				// fmt.Println("Case 6.3: p,b = ", p, b)
 				p.Banners = append(p.Banners, b)
 				sort.Sort(banner.ByExpiry(p.Banners))
 				return nil
@@ -210,53 +207,5 @@ func (s *Scheduler) GetByTime(t int64) (banner.Banner, error) {
 
 // Cleanup unused memory
 func (s *Scheduler) Cleanup() {
-
-}
-
-// Debug scheduler
-func (s *Scheduler) Debug() {
-	// Display linked list
-	fmt.Print("Head -> ")
-	for t := s.Head; t != nil; t = t.Next {
-		// for i := t.T1; i < t.T2; i++ {
-		//	fmt.Print(t.Banners[0].ID)
-		// }
-		fmt.Printf("{'%v',%v,%v}", t.Banners[0].ID, t.T1, t.T2)
-		fmt.Print(" -> ")
-	}
-	fmt.Println("nil")
-
-	// Display timeline
-	var start, end int64
-	if s.Head != nil {
-		start = s.Head.T1
-	}
-	fmt.Printf("Timeline: (%02d)", start)
-	for t := s.Head; t != nil; t = t.Next {
-		end = t.T2
-	}
-	for i := start; i <= end; i++ {
-		if i%10 == 0 {
-			fmt.Print("|")
-		} else if i%5 == 0 {
-			fmt.Print("+")
-		} else {
-			fmt.Print("-")
-		}
-	}
-	fmt.Printf("(%02d)\n", end)
-
-	// Display scheduled banners
-	fmt.Printf("Scheduling:   ")
-	for i := start; i <= end; i++ {
-		b, err := s.GetByTime(i)
-		if err != nil {
-			fmt.Print(" ")
-		} else {
-			fmt.Print(b.ID)
-		}
-	}
-	fmt.Println()
-	fmt.Println()
 
 }
