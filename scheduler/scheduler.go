@@ -219,10 +219,10 @@ func (s *Scheduler) Debug() {
 	// Display linked list
 	fmt.Print("Head -> ")
 	for t := s.Head; t != nil; t = t.Next {
-		for i := t.T1; i < t.T2; i++ {
-			fmt.Print(t.Banners[0].ID)
-		}
-		fmt.Printf("(%v,%v)", t.T1, t.T2)
+		// for i := t.T1; i < t.T2; i++ {
+		//	fmt.Print(t.Banners[0].ID)
+		// }
+		fmt.Printf("{'%v',%v,%v}", t.Banners[0].ID, t.T1, t.T2)
 		fmt.Print(" -> ")
 	}
 	fmt.Println("nil")

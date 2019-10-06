@@ -15,8 +15,14 @@ func TestScheduler(t *testing.T) {
 	s.Debug()
 
 	AddBanner(s, banner.Banner{ID: "A", ActiveAt: 20, ExpireAt: 40})
+	AddBanner(s, banner.Banner{ID: "B", ActiveAt: 40, ExpireAt: 70})
 
+	/* Not Working
+	AddBanner(s, banner.Banner{ID: "A", ActiveAt: 20, ExpireAt: 40})
 	AddBanner(s, banner.Banner{ID: "B", ActiveAt: 25, ExpireAt: 30})
+	AddBanner(s, banner.Banner{ID: "C", ActiveAt: 45, ExpireAt: 80})
+	*/
+	AddBanner(s, banner.Banner{ID: ".", ActiveAt: 0, ExpireAt: 100})
 }
 
 func AddBanner(s *Scheduler, b banner.Banner) {
