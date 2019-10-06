@@ -14,23 +14,23 @@ type Banner struct {
 }
 
 // Add scheduling to the Banner
-func (b *Banner) AddDuration(start, end time.Time) *Banner {
+func (b Banner) AddDuration(start, end time.Time) *Banner {
 	return nil
 }
 
 // Add description to the Banner
-func (b *Banner) AddDescription(s string) *Banner {
+func (b Banner) AddDescription(s string) *Banner {
 	return nil
 }
 
-func (b *Banner) Store() (int, error) {
+func (b Banner) Store() (int, error) {
 	return 0, nil
 }
 
-func (b *Banner) IsActive() bool {
+func (b Banner) IsActive() bool {
 	return true
 }
 
-func (b *Banner) String() string {
+func (b Banner) String() string {
 	return fmt.Sprintf("%v[%v,%v)", b.ID, b.ActiveAt, b.ExpireAt)
 }
