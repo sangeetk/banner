@@ -1,40 +1,46 @@
 package banner
 
 import (
-	"fmt"
+	"image"
 	"time"
 )
 
 // Banner image
 type Banner struct {
-	ID       string
-	ActiveAt int64
-	ExpireAt int64
-	Image    string
+	ID          string      `json:"id"`
+	ActiveAt    int64       `json:"active_at"`
+	ExpireAt    int64       `json:"expire_at"`
+	Filename    string      `json:"filename"`
+	Image       image.Image `json:"image"`
+	Description string      `json:"description"`
 }
 
-// Add scheduling to the Banner
-func (b Banner) AddDuration(start, end time.Time) *Banner {
+// NewFile creates a banner using the file on disk
+func NewFile(file string) (*Banner, error) {
+	return nil, nil
+}
+
+// NewURL create a banner from the given URL
+func NewURL(url string) (*Banner, error) {
+	return nil, nil
+}
+
+// AddDescription adds detail about banner
+func (b *Banner) AddDescription(s string) *Banner {
 	return nil
 }
 
-// Add description to the Banner
-func (b Banner) AddDescription(s string) *Banner {
+// AddDuration sets active duration of the banner
+func (b *Banner) AddDuration(start, end time.Time) *Banner {
 	return nil
 }
 
-func (b Banner) Store() (int, error) {
-	return 0, nil
+// Delete the banner and free storage
+func (b *Banner) Delete() error {
+	return nil
 }
 
-func (b Banner) IsActive() bool {
+// IsActive tells if the banner is active or expired
+func (b *Banner) IsActive() bool {
 	return true
-}
-
-func (b Banner) String() string {
-	return fmt.Sprintf("%v[%v,%v)", b.ID, b.ActiveAt, b.ExpireAt)
-}
-
-func (b Banner) Debug(offset int64) string {
-	return fmt.Sprintf("%v[%v,%v)", b.ID, b.ActiveAt-offset, b.ExpireAt-offset)
 }

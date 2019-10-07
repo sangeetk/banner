@@ -1,16 +1,20 @@
 package banner
 
-type ByExpiry []Banner
+// SortByExpiry sort banners using expire time
+type SortByExpiry []Banner
 
-func (b ByExpiry) Len() int {
-	return len(b)
+// Len returns number of items in the slice
+func (s SortByExpiry) Len() int {
+	return len(s)
 }
 
-func (b ByExpiry) Swap(i, j int) {
-	b[i], b[j] = b[j], b[i]
+// Swap items from the slice
+func (s SortByExpiry) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 
 }
 
-func (b ByExpiry) Less(i, j int) bool {
-	return b[i].ExpireAt < b[j].ExpireAt
+// Less compares two items and returns bool
+func (s SortByExpiry) Less(i, j int) bool {
+	return s[i].ExpireAt < s[j].ExpireAt
 }
