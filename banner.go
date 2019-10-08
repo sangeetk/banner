@@ -1,8 +1,10 @@
 package banner
 
 import (
-	"image"
+	"io/ioutil"
+	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -39,9 +41,9 @@ func NewFile(id, path string) (*Banner, error) {
 }
 
 // NewURL create a banner from the given URL
-func NewURL(id, url string) (*Banner, error) {
+func NewURL(id, location string) (*Banner, error) {
 	// create a URL from string
-	fileURL, err := url.Parse(url)
+	fileURL, err := url.Parse(location)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +52,7 @@ func NewURL(id, url string) (*Banner, error) {
 	fileName = segments[len(segments)-1]
 
 	// Get the file fom the given url
-	resp, err := http.Get(url)
+	resp, err := http.Get(location)
 	if err != nil {
 		return nil, err
 	}

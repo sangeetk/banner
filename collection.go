@@ -20,6 +20,20 @@ func NewCollection(id string, ds *DataStore) *Collection {
 	}
 }
 
+// RestoreCollection using the given datatore
+func RestoreCollection(id string, ds *DataStore) *Collection {
+	col := &Collection{
+		ID:        id,
+		DataStore: ds,
+		Scheduler: Scheduler{},
+	}
+	// Schedule all banners from the datastore
+	for b := range col.DataStore.List() {
+		col.Scheduler.Schedule(b)
+	}
+	return col
+}
+
 // GetActive returns an active banner with nearest expiry
 func (c *Collection) GetActive() (*Banner, error) {
 	return c.Scheduler.Get()

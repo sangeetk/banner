@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/sangeetk/banner"
-	"github.com/sangeetk/banner/datastore"
 )
 
 func main() {

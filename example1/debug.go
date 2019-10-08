@@ -6,12 +6,16 @@ import (
 	"github.com/sangeetk/banner"
 )
 
-func DebugBanner(b banner.Banner, offset int64) string {
-	return fmt.Sprintf("{%v, %v-%v}", b.ID, b.ActiveAt-offset, b.ExpireAt-offset)
+// DebugBanner is used for testing purpose
+func DebugBanner(b *banner.Banner, offset int64) string {
+	if b == nil {
+		return " [null,null)"
+	}
+	return fmt.Sprintf("%v[%v,%v)", b.ID, b.ActiveAt-offset, b.ExpireAt-offset)
 }
 
-// Debug scheduler
-func (s *Scheduler) Debug(offset int64) {
+// DebugScheduler displays schedule on console
+func DebugScheduler(s *banner.Scheduler, offset int64) {
 	// Display linked list
 	fmt.Print("Head -> ")
 	for t := s.Head; t != nil; t = t.Next {
@@ -55,5 +59,4 @@ func (s *Scheduler) Debug(offset int64) {
 	}
 	fmt.Println()
 	fmt.Println()
-
 }
