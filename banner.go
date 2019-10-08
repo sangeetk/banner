@@ -2,6 +2,7 @@ package banner
 
 import (
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -49,7 +50,7 @@ func NewURL(id, location string) (*Banner, error) {
 	}
 	// Get filename
 	segments := strings.Split(fileURL.Path, "/")
-	fileName = segments[len(segments)-1]
+	fileName := segments[len(segments)-1]
 
 	// Get the file fom the given url
 	resp, err := http.Get(location)
@@ -84,11 +85,12 @@ func (b *Banner) AddDuration(start, end time.Time) *Banner {
 
 // Delete the banner and free storage
 func (b *Banner) Delete() error {
-	delete(b.Image)
+	// delete
 	return nil
 }
 
 // IsActive tells if the banner is active or expired
 func (b *Banner) IsActive() bool {
-	return b.ActiveAt <= time.Now() && b.ExpireAt > time.Now()
+	now := time.Now().Unix()
+	return b.ActiveAt <= now && b.ExpireAt > now
 }

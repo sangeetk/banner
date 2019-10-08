@@ -11,7 +11,7 @@ type Timeslot struct {
 	Lock    bool
 	T1      int64
 	T2      int64
-	Banners []*Banner
+	Banners []Banner
 	Next    *Timeslot
 }
 
@@ -21,14 +21,14 @@ type Scheduler struct {
 }
 
 // Schedule a banner
-func (s *Scheduler) Schedule(b *Banner) error {
+func (s *Scheduler) Schedule(b Banner) error {
 
 	if b.ActiveAt >= b.ExpireAt {
 		return errors.New(ErrorInvalidSchedule)
 	}
 
 	if b.ExpireAt <= time.Now().Unix() {
-		return errors.New(ErrorExpired)
+		return errors.New(ErrorExpiredSchedule)
 	}
 
 	if s.Head == nil {
@@ -38,7 +38,13 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// New ->     AAAAAAAAAA
 		// Result:
 		// Head ->    AAAAAAAAAA -> nil
-		s.Head = &Timeslot{false, b.ActiveAt, b.ExpireAt, []*Banner{b}, nil}
+		s.Head = &Timeslot{
+			Lock:    false,
+			T1:      b.ActiveAt,
+			T2:      b.ExpireAt,
+			Banners: []Banner{b},
+			Next:    nil,
+		}
 		return nil
 	}
 
@@ -58,7 +64,7 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// Head -> AAAAAAAAAA -> ########## -> ##### -> nil
 		if b.ExpireAt <= p.T1 {
 			// fmt.Println("Case 2: p,b = ", p, b)
-			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []*Banner{b}, p}
+			q := &Timeslot{Lock: false, T1: b.ActiveAt, T2: b.ExpireAt, Banners: []Banner{b}, Next: p}
 			if s.Head == p {
 				s.Head = q
 			} else {
@@ -73,7 +79,7 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// New ->                           AAAAAAAAAA
 		if p.T2 <= b.ActiveAt && p.Next == nil {
 			// fmt.Println("Case 3: p,b = ", p, b)
-			q := &Timeslot{false, b.ActiveAt, b.ExpireAt, []*Banner{b}, nil}
+			q := &Timeslot{Lock: false, T1: b.ActiveAt, T2: b.ExpireAt, Banners: []Banner{b}, Next: nil}
 			p.Next = q
 			return nil
 		}
@@ -84,10 +90,10 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		// New ->  AAAAAAAAA
 		if b.ActiveAt < p.T1 {
 			// fmt.Println("Case 4: p,b = ", p, b)
-			b1 := Banner{b.ID, b.ActiveAt, b.ExpireAt, b.Image}
-			b2 := Banner{b.ID, p.T1, b.ExpireAt, b.Image}
+			b1 := Banner{ID: b.ID, Filename: b.Filename, ActiveAt: b.ActiveAt, ExpireAt: b.ExpireAt, Image: b.Image}
+			b2 := Banner{ID: b.ID, Filename: b.Filename, ActiveAt: p.T1, ExpireAt: b.ExpireAt, Image: b.Image}
 
-			q := &Timeslot{false, b.ActiveAt, p.T1, []*Banner{b1}, p}
+			q := &Timeslot{Lock: false, T1: b.ActiveAt, T2: p.T1, Banners: []Banner{b1}, Next: p}
 
 			if prev != nil {
 				prev.Next = q
@@ -108,7 +114,7 @@ func (s *Scheduler) Schedule(b *Banner) error {
 		if p.T1 < b.ActiveAt && p.T2 > b.ActiveAt {
 			// fmt.Println("Case 5: p,b = ", p, b)
 
-			banners := make([]*Banner, len(p.Banners))
+			banners := make([]Banner, len(p.Banners))
 			copy(banners, p.Banners)
 
 			q := &Timeslot{false, p.T1, b.ActiveAt, banners, p}
@@ -133,10 +139,10 @@ func (s *Scheduler) Schedule(b *Banner) error {
 			// New ->  AAAAAAA
 			if b.ExpireAt < p.T2 {
 				// fmt.Println("Case 6.1: p,b = ", p, b)
-				banners := make([]*Banner, len(p.Banners))
+				banners := make([]Banner, len(p.Banners))
 				copy(banners, p.Banners)
 
-				q := &Timeslot{false, b.ExpireAt, p.T2, banners, p.Next}
+				q := &Timeslot{Lock: false, T1: b.ExpireAt, T2: p.T2, Banners: banners, Next: p.Next}
 				p.T2 = b.ExpireAt
 				p.Banners = append(p.Banners, b)
 				sort.Sort(SortByExpiry(p.Banners))
@@ -154,7 +160,7 @@ func (s *Scheduler) Schedule(b *Banner) error {
 				sort.Sort(SortByExpiry(p.Banners))
 
 				if p.Next == nil {
-					q := &Timeslot{false, p.T2, b.ExpireAt, []*Banner{b}, nil}
+					q := &Timeslot{Lock: false, T1: p.T2, T2: b.ExpireAt, Banners: []Banner{b}, Next: nil}
 					p.Next = q
 					return nil
 				}
@@ -184,51 +190,55 @@ func (s *Scheduler) Schedule(b *Banner) error {
 }
 
 // Get an active banner
-func (s *Scheduler) Get() (*Banner, error) {
-	return GetByTime(time.Now().Unix())
+func (s *Scheduler) Get() (Banner, error) {
+	return s.GetByTime(time.Now().Unix())
 }
 
 // GetAll active banners
-func (s *Scheduler) GetAll() ([]*Banner, error) {
-	return GetAllByTime(time.Now().Unix())
+func (s *Scheduler) GetAll() ([]Banner, error) {
+	return s.GetAllByTime(time.Now().Unix())
 }
 
 // GetByTime returns a banner, scheduled in future
-func (s *Scheduler) GetByTime(t int64) (*Banner, error) {
+func (s *Scheduler) GetByTime(t int64) (Banner, error) {
 	for p := s.Head; p != nil; p = p.Next {
 		if t >= p.T1 && t < p.T2 {
 			if len(p.Banners) == 0 {
-				return nil, errors.New(ErrorNotFound)
+				return Banner{}, errors.New(ErrorNotFound)
 			}
 			return p.Banners[0], nil
 		}
 	}
-	return nil, errors.New(ErrorNotFound)
+	return Banner{}, errors.New(ErrorNotFound)
 }
 
 // GetAllByTime returns a banner, scheduled in future
-func (s *Scheduler) GetAllByTime(t int64) ([]*Banner, error) {
+func (s *Scheduler) GetAllByTime(t int64) ([]Banner, error) {
 	for p := s.Head; p != nil; p = p.Next {
 		if t >= p.T1 && t < p.T2 {
 			if len(p.Banners) == 0 {
-				return []*Banners{}, errors.New(ErrorNotFound)
+				return []Banner{}, errors.New(ErrorNotFound)
 			}
 			return p.Banners, nil
 		}
 	}
-	return []*Banners{}, errors.New(ErrorNotFound)
+	return []Banner{}, errors.New(ErrorNotFound)
 }
 
 // Unschedule a banner
-func (s *Scheduler) Unschedule(id string) (*Banner, error) {
+func (s *Scheduler) Unschedule(id string) error {
+	var found bool
 	for p := s.Head; p != nil; p = p.Next {
 		for i, b := range p.Banners {
 			if b.ID == id {
 				// Remove the banner
 				p.Banners = append(p.Banners[:i], p.Banners[i+1:]...)
-				return b, nil
+				found = true
 			}
 		}
 	}
-	return nil, errors.New(ErrorNotFound)
+	if found {
+		return nil
+	}
+	return errors.New(ErrorNotFound)
 }

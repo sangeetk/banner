@@ -1,7 +1,7 @@
 package banner
 
 // SortByExpiry sort banners using expire time
-type SortByExpiry []*Banner
+type SortByExpiry []Banner
 
 // Len returns number of items in the slice
 func (s SortByExpiry) Len() int {
