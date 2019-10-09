@@ -53,7 +53,7 @@ The **example** directory contains an example which creates and schedules few ba
 
 Please refer to the Example's [README.md][example-readme] file for more details.
 
-[example-readme]: [example/README.md]
+[example-readme]: example/README.md
 
 
 
