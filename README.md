@@ -51,8 +51,9 @@ The documentation will be accessible by browser at [http://localhost:9999][http:
 ### Example
 The **example** directory contains an example which creates and schedules few banners and displays the schedule in the console.  It also starts an http server at localhost:8080. At any moment in time, refresh the browser to load the current banner.  This example runs for 180 seconds after which the user must press Ctrl+C to terminate the process.
 
-Please refer to the Example's README.md file for more details.
+Please refer to the Example's [README.md][example-readme] file for more details.
 
+[example-readme]: [example/README.md]
 
 
 
