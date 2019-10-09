@@ -191,6 +191,7 @@ func (s *Scheduler) Schedule(b Banner) error {
 
 // Get an active banner
 func (s *Scheduler) Get() (Banner, error) {
+	s.Cleanup()
 	return s.GetByTime(time.Now().Unix())
 }
 
@@ -241,4 +242,25 @@ func (s *Scheduler) Unschedule(id string) error {
 		return nil
 	}
 	return errors.New(ErrorNotFound)
+}
+
+// Cleanup expired timeslots
+func (s *Scheduler) Cleanup() {
+	now := time.Now().Unix()
+
+	for p := s.Head; p != nil; p = p.Next {
+		if p.T2 <= now {
+			// Expired timeslot
+			// Delete all banners except those which are
+			// continueing in the next Timeslot
+			for _, b := range p.Banners {
+				if b.ExpireAt <= now {
+					// Delete the banner
+				}
+			}
+			// Move the Head pointer and delete the timeslot
+			s.Head = p.Next
+		}
+	}
+
 }

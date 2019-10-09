@@ -15,6 +15,16 @@ var startTime time.Time
 func main() {
 	fmt.Println("Testing scheduling of banners...")
 
+	// Start http server
+	go func() {
+		http.Handle("/", http.HandlerFunc(Handler))
+		log.Fatal(http.ListenAndServe(":8080", nil))
+
+	}()
+
+	// Wait for server to come up
+	time.Sleep(1 * time.Second)
+
 	// Create a new collection
 	Coll = banner.NewCollection("collection1", banner.NewDataStoreMemory())
 
@@ -65,26 +75,11 @@ func main() {
 	Coll.Add(*mercari)
 	debugScheduler(&Coll.Scheduler, startTime.Unix())
 
-	mercari2, _ := banner.NewURL("m", "https://web-jp-assets.mercdn.net/_next/static/images/top-banner-super-exhibition-fes-1354ceda34bd06081a45ee755e911f07.jpg")
-	mercari2.AddDuration(startTime.Add(160*time.Second), startTime.Add(180*time.Second))
-	Coll.Add(*mercari2)
-	debugScheduler(&Coll.Scheduler, startTime.Unix())
-
 	// default banner
 	white, _ := banner.NewFile(".", "images/white.jpg")
 	white.AddDuration(startTime.Add(0*time.Second), startTime.Add(160*time.Second))
 	Coll.Add(*white)
 	debugScheduler(&Coll.Scheduler, startTime.Unix())
-
-	// Start http server
-	go func() {
-		http.Handle("/", http.HandlerFunc(Handler))
-		log.Println("Running http server at localhost:8080")
-		log.Fatal(http.ListenAndServe(":8080", nil))
-	}()
-
-	// Ask for inputs from user
-	time.Sleep(1 * time.Second)
 
 	for {
 		var sec int64
@@ -105,7 +100,8 @@ func main() {
 			preview = b.ID
 		}
 
-		fmt.Printf("Time [%v sec] => Active startTime : [%v] , Active at %v sec : [%v]\n", time.Now().Unix()-startTime.Unix(), active, sec, preview)
+		debugScheduler(&Coll.Scheduler, startTime.Unix())
+		fmt.Printf("Time [%v sec]: Active now: [%v] , Active at %v: [%v]\n", time.Now().Unix()-startTime.Unix(), active, sec, preview)
 	}
 
 }
