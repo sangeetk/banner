@@ -1,4 +1,4 @@
-# Banner
+Banner
 ========
 
 The Banner package meets the following spectification:
